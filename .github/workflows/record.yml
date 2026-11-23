@@ -1,8 +1,16 @@
 name: record-ticks
 on:
   schedule:
-    - cron: "15 3 * * 1-5"   # 08:45 IST -> part A, records till 12:30 IST
-    - cron: "0 6 * * 1-5"    # 11:30 IST -> part B, records till 15:31 IST (overlap is deliberate)
+    # GitHub sometimes skips scheduled starts, so each part has several backup times.
+    # A lock file per day+part makes extra starts exit immediately.
+    - cron: "7 3 * * 1-5"    # 08:37 IST  part A (records till 12:30 IST)
+    - cron: "29 3 * * 1-5"   # 08:59 IST  part A backup
+    - cron: "53 3 * * 1-5"   # 09:23 IST  part A backup
+    - cron: "41 4 * * 1-5"   # 10:11 IST  part A backup
+    - cron: "47 5 * * 1-5"   # 11:17 IST  part B (records till 15:31 IST)
+    - cron: "13 6 * * 1-5"   # 11:43 IST  part B backup
+    - cron: "37 6 * * 1-5"   # 12:07 IST  part B backup
+    - cron: "19 7 * * 1-5"   # 12:49 IST  part B backup
   workflow_dispatch:
     inputs:
       stop: {description: "stop time HH:MM IST", default: "15:31"}
@@ -19,16 +27,22 @@ jobs:
       - run: pip install -q upstox-python-sdk
       - name: Record
         env:
+          GH_TOKEN: ${{ github.token }}
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
         run: |
           H=$(TZ=Asia/Kolkata date +%H)
           if [ -n "${{ github.event.inputs.stop }}" ]; then STOP="${{ github.event.inputs.stop }}"; PART=manual$(date +%s)
           elif [ "$H" -lt 11 ]; then STOP=12:30; PART=a; else STOP=15:31; PART=b; fi
-          echo "DAY=$(TZ=Asia/Kolkata date +%Y%m%d)" >> $GITHUB_ENV
+          DAY=$(TZ=Asia/Kolkata date +%Y%m%d)
+          echo "DAY=$DAY" >> $GITHUB_ENV
           echo "PART=$PART" >> $GITHUB_ENV
+          gh release view "$DAY" >/dev/null 2>&1 || gh release create "$DAY" --title "$DAY" --notes "encrypted tick data" || true
+          if gh release view "$DAY" --json assets -q '.assets[].name' | grep -qx "${DAY}_${PART}.lock"; then
+            echo "part $PART already running/recorded today - skipping"; echo "SKIP=1" >> $GITHUB_ENV; exit 0; fi
+          echo started > "${DAY}_${PART}.lock"; gh release upload "$DAY" "${DAY}_${PART}.lock"
           python cloud_recorder.py ticks.jsonl "$STOP"
       - name: Compress, encrypt, upload
-        if: always()
+        if: always() && env.SKIP != '1'
         env:
           GH_TOKEN: ${{ github.token }}
           TICKS_KEY: ${{ secrets.TICKS_KEY }}
