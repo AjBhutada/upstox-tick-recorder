@@ -7,7 +7,7 @@ on:
     - cron: "29 3 * * 1-5"   # 08:59 IST  part A backup
     - cron: "53 3 * * 1-5"   # 09:23 IST  part A backup
     - cron: "41 4 * * 1-5"   # 10:11 IST  part A backup
-    - cron: "47 5 * * 1-5"   # 11:17 IST  part B (records till 15:31 IST)
+    - cron: "47 5 * * 1-5"   # 11:17 IST  part B (records till 15:46 IST; F&O trades till ~15:40)
     - cron: "13 6 * * 1-5"   # 11:43 IST  part B backup
     - cron: "37 6 * * 1-5"   # 12:07 IST  part B backup
     - cron: "19 7 * * 1-5"   # 12:49 IST  part B backup
@@ -32,7 +32,7 @@ jobs:
         run: |
           H=$(TZ=Asia/Kolkata date +%H)
           if [ -n "${{ github.event.inputs.stop }}" ]; then STOP="${{ github.event.inputs.stop }}"; PART=manual$(date +%s)
-          elif [ "$H" -lt 11 ]; then STOP=12:30; PART=a; else STOP=15:31; PART=b; fi
+          elif [ "$H" -lt 11 ]; then STOP=12:30; PART=a; else STOP=15:46; PART=b; fi
           DAY=$(TZ=Asia/Kolkata date +%Y%m%d)
           echo "DAY=$DAY" >> $GITHUB_ENV
           echo "PART=$PART" >> $GITHUB_ENV
