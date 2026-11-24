@@ -1,16 +1,8 @@
 name: record-ticks
 on:
-  schedule:
-    # GitHub sometimes skips scheduled starts, so each part has several backup times.
-    # A lock file per day+part makes extra starts exit immediately.
-    - cron: "7 3 * * 1-5"    # 08:37 IST  part A (records till 12:30 IST)
-    - cron: "29 3 * * 1-5"   # 08:59 IST  part A backup
-    - cron: "53 3 * * 1-5"   # 09:23 IST  part A backup
-    - cron: "41 4 * * 1-5"   # 10:11 IST  part A backup
-    - cron: "47 5 * * 1-5"   # 11:17 IST  part B (records till 15:46 IST; F&O trades till ~15:40)
-    - cron: "13 6 * * 1-5"   # 11:43 IST  part B backup
-    - cron: "37 6 * * 1-5"   # 12:07 IST  part B backup
-    - cron: "19 7 * * 1-5"   # 12:49 IST  part B backup
+  # Started ONLY by cron-job.org (workflow_dispatch): part A at 08:40 IST (records 09:00 pre-open to 12:30), part B late
+  # morning (to 15:46). GitHub's own timers were removed on 24 Nov 2026: in this repo they fired hours late (11:17 at 21:59,
+  # 08:37 at 00:10) and one took the day's slot so the real 08:40 start skipped. A start outside 08:00-15:30 IST does nothing.
   workflow_dispatch:
     inputs:
       stop: {description: "stop time HH:MM IST (leave empty = normal part A/B by time of day)", default: "", required: false}
